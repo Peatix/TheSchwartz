@@ -29,5 +29,6 @@ CREATE TABLE exitstatus (
         funcid          INT UNSIGNED NOT NULL DEFAULT 0,
         status          SMALLINT UNSIGNED,
         completion_time INTEGER UNSIGNED,
-        delete_after    INTEGER UNSIGNED
+        delete_after    INTEGER UNSIGNED,
+        note            MEDIUMTEXT
 );

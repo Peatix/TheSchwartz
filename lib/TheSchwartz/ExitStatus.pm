@@ -7,7 +7,7 @@ use base qw( Data::ObjectDriver::BaseObject );
 __PACKAGE__->install_properties(
     {   columns => [
             qw( jobid status funcid
-                completion_time delete_after )
+                completion_time delete_after note )
         ],
         datasource  => 'exitstatus',
         primary_key => 'jobid',
