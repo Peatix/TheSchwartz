@@ -42,6 +42,7 @@ CREATE TABLE exitstatus (
         status          SMALLINT UNSIGNED,
         completion_time INTEGER UNSIGNED,
         delete_after    INTEGER UNSIGNED,
+        note            MEDIUMTEXT,
         INDEX (funcid),
         INDEX (delete_after)
 );

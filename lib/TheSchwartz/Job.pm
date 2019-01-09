@@ -151,6 +151,7 @@ sub set_exit_status {
     $status->completion_time(time);
     $status->delete_after( $status->completion_time + $secs );
     $status->status($exit);
+    $status->note( join "\n", @{$job->{__note} || []} );
 
     my $driver = $job->driver;
     $driver->insert($status);
@@ -357,6 +358,12 @@ sub _cond_thaw {
     else {
         return $data;
     }
+}
+
+sub note {
+    my $job = shift;
+    my $note = $job->{__note} //= [];
+    push @$note, @_;
 }
 
 1;
