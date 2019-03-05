@@ -30,5 +30,6 @@ CREATE TABLE exitstatus (
         status          SMALLINT UNSIGNED,
         completion_time INTEGER UNSIGNED,
         delete_after    INTEGER UNSIGNED,
-        note            MEDIUMTEXT
+        note            MEDIUMTEXT,
+        elapsed         DOUBLE
 );

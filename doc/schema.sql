@@ -43,6 +43,7 @@ CREATE TABLE exitstatus (
         completion_time INTEGER UNSIGNED,
         delete_after    INTEGER UNSIGNED,
         note            MEDIUMTEXT,
+        elapsed         DOUBLE,
         INDEX (funcid),
         INDEX (delete_after)
 );

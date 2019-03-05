@@ -6,6 +6,7 @@ use base qw( Data::ObjectDriver::BaseObject );
 
 use Carp qw( croak );
 use Storable ();
+use Time::HiRes ();
 use TheSchwartz::Error;
 use TheSchwartz::ExitStatus;
 use TheSchwartz::JobHandle;
@@ -152,6 +153,10 @@ sub set_exit_status {
     $status->delete_after( $status->completion_time + $secs );
     $status->status($exit);
     $status->note( join "\n", @{$job->{__note} || []} );
+    my $now = Time::HiRes::time();
+    my $elapsed = $now - ( $job->{__begin_time} || 0 );
+    $elapsed = 0.00001 if $elapsed < 0.00001;
+    $status->elapsed($elapsed);
 
     my $driver = $job->driver;
     $driver->insert($status);

@@ -64,7 +64,8 @@ CREATE TABLE exitstatus (
         status          SMALLINT,
         completion_time INTEGER,
         delete_after    INTEGER,
-        note            MEDIUMTEXT
+        note            MEDIUMTEXT,
+        elapsed         DOUBLE
 );
 
 CREATE INDEX exitstatus_funcid ON exitstatus (funcid);

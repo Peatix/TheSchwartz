@@ -13,6 +13,7 @@ use Data::ObjectDriver::Errors;
 use Data::ObjectDriver::Driver::DBI;
 use Digest::MD5 qw( md5_hex );
 use List::Util qw( shuffle );
+use Time::HiRes ();
 use TheSchwartz::FuncMap;
 use TheSchwartz::Job;
 use TheSchwartz::JobHandle;
@@ -666,6 +667,7 @@ sub work_once {
 ## BUGBUG this looks odd since ordering by job_id should limit any skew ...
     $client->temporarily_remove_ability($class) unless($client->{strict_remove_ability});
 
+    $job->{__begin_time} = Time::HiRes::time();
     $class->work_safely($job);
 
     ## We got a job, so return 1 so work_until_done (which calls this method)
