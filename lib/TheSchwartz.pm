@@ -3,8 +3,12 @@
 package TheSchwartz;
 use 5.008;
 use strict;
-use fields
-    qw( databases retry_seconds dead_dsns retry_at funcmap_cache verbose all_abilities current_abilities current_job cached_drivers driver_cache_expiration scoreboard prioritize floor batch_size strict_remove_ability);
+use fields qw(
+    databases retry_seconds dead_dsns retry_at funcmap_cache
+    verbose all_abilities current_abilities current_job
+    cached_drivers driver_cache_expiration scoreboard prioritize
+    floor batch_size strict_remove_ability
+);
 
 our $VERSION = "1.1204";
 
