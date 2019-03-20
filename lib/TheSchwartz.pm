@@ -10,7 +10,7 @@ use fields qw(
     grab_and_fetch floor batch_size strict_remove_ability
 );
 
-our $VERSION = "1.1204";
+our $VERSION = "1.1205";
 
 use Carp qw( croak );
 use Data::ObjectDriver::Errors;
