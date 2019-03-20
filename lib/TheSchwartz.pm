@@ -7,7 +7,7 @@ use fields qw(
     databases retry_seconds dead_dsns retry_at funcmap_cache
     verbose all_abilities current_abilities current_job
     cached_drivers driver_cache_expiration scoreboard prioritize
-    floor batch_size strict_remove_ability
+    grab_and_fetch floor batch_size strict_remove_ability
 );
 
 our $VERSION = "1.1204";
@@ -49,7 +49,7 @@ sub new {
     $client->{driver_cache_expiration} = delete $args{driver_cache_expiration}
         || 0;
     $client->{batch_size} = delete $args{batch_size} || $FIND_JOB_BATCH_SIZE;
-
+    $client->{grab_and_fetch} = delete $args{grab_and_fetch};
     $client->{strict_remove_ability} = delete $args{strict_remove_ability};
 
     my $floor = delete $args{floor};
@@ -320,10 +320,17 @@ sub _find_job_with_coalescing {
 
 sub find_job_for_workers {
     my TheSchwartz $client = shift;
+    my $opts = {};
+    if ( 'HASH' eq ref $_[0] ) {
+        $opts = shift;
+    }
     my ($worker_classes) = @_;
     $worker_classes ||= $client->{current_abilities};
 
     my %options = ( limit => $client->batch_size );
+    if ( $opts->{minimal_load} ) {
+        $options{fetchonly} = [ 'jobid', 'funcid', 'grabbed_until' ];
+    }
     if ( $client->prioritize ) {
         $options{sort} = [
             { column => 'priority', direction => 'descend' },
@@ -372,8 +379,7 @@ sub find_job_for_workers {
         # for test harness race condition testing
         $T_AFTER_GRAB_SELECT_BEFORE_UPDATE->()
             if $T_AFTER_GRAB_SELECT_BEFORE_UPDATE;
-
-        my $job = $client->_grab_a_job( $hashdsn, @jobs );
+        my $job = $client->_grab_a_job( $hashdsn, { refetch => $opts->{minimal_load} }, @jobs );
         return $job if $job;
     }
 }
@@ -394,6 +400,10 @@ sub _grab_a_job {
     my TheSchwartz $client = shift;
     my $hashdsn            = shift;
     my $driver             = $client->driver_for($hashdsn);
+    my $opts               = {};
+    if ( $_[0] && 'HASH' eq ref $_[0] ) {
+        $opts = shift;
+    }
 
     ## Got some jobs! Randomize them to avoid contention between workers.
     my @jobs = shuffle(@_);
@@ -420,6 +430,10 @@ JOB:
         ##       in bounds of original search query. so we need to be more paranoic
         ##       to make sure it's not grabbed by other workers.
         my $unixtime = $driver->dbd->sql_for_unixtime;
+
+        ## HACK: Make sure only grabbed_until column would be updated
+        $job->{changed_cols} = { grabbed_until => 1 };
+
         if ( $driver->update( $job, {
             grabbed_until => [
                 '-and',
@@ -433,6 +447,10 @@ JOB:
             next JOB;
         }
 
+        # if refetch option is on...
+        if ( $opts->{refetch} ) {
+            $job = $driver->lookup( 'TheSchwartz::Job' => $job->jobid );
+        }
         ## Now prepare the job, and return it.
         my $handle = TheSchwartz::JobHandle->new(
             {   dsn_hashed => $hashdsn,
@@ -639,7 +657,9 @@ sub work_once {
     ## Look for a job with our current set of abilities. Note that the
     ## list of current abilities may not be equal to the full set of
     ## abilities, to allow for even distribution between jobs.
-    $job ||= $client->find_job_for_workers;
+    $job ||= $client->find_job_for_workers(
+        { minimal_load => $client->{grab_and_fetch} ? 1 : 0 }
+    );
 
     ## If we didn't find anything, restore our full abilities, and try
     ## again.
@@ -648,7 +668,9 @@ sub work_once {
         && @{ $client->{current_abilities} } < @{ $client->{all_abilities} } )
     {
         $client->restore_full_abilities;
-        $job = $client->find_job_for_workers;
+        $job = $client->find_job_for_workers(
+            { minimal_load => $client->{grab_and_fetch} ? 1 : 0 }
+        );
     }
 
     my $class = $job ? $job->funcname : undef;

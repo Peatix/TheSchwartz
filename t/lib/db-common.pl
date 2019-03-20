@@ -86,10 +86,14 @@ sub test_client {
                 push @tmp, { driver => $driver, prefix => $pfx };
             };
         }
-        return TheSchwartz->new( databases => [@tmp] );
+        return TheSchwartz->new(
+            $ENV{GRAB_AND_FETCH} ? (grab_and_fetch => 1) : (),
+            databases => [@tmp]
+        );
     }
     else {
         return TheSchwartz->new(
+            $ENV{GRAB_AND_FETCH} ? (grab_and_fetch => 1) : (),
             databases => [
                 map {
                     {   dsn    => dsn_for($_),
