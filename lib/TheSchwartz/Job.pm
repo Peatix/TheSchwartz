@@ -118,7 +118,16 @@ sub add_failure {
     $error->error_time( time() );
     $error->jobid( $job->jobid );
     $error->funcid( $job->funcid );
-    $error->message( $msg || '' );
+    $msg //= '';
+    my $note = join "\n", @{$job->{__note} || []};
+    $msg .= <<"NOTE" if $note;
+
+-------------------------------------------------------------------
+RUNTIME NOTE:
+
+$note
+NOTE
+    $error->message( $msg );
 
     my $driver = $job->driver;
     $driver->insert($error);
