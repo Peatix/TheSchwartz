@@ -223,7 +223,7 @@ sub permanent_failure {
         $job->debug("can't call 'permanent_failure' on already finished job");
         return 0;
     }
-    $job->_failed( $msg, $ex_status, 0 );
+    $job->_failed( $msg, $ex_status, -1 );
 }
 
 sub declined {
@@ -272,7 +272,7 @@ sub failed {
     $job->debug(
         "job failed.  considering retry.  is max_retries of $max_retries >= failures of $failures?"
     );
-    $job->_failed( $msg, $ex_status, $max_retries >= $failures, $failures );
+    $job->_failed( $msg, $ex_status, $max_retries >= $failures ? 1 : 0, $failures );
 }
 
 sub _failed {
@@ -290,13 +290,18 @@ sub _failed {
     }
     $job->{__last_error_summary} = $subject;
 
-    if ($_retry) {
-        my $class = $job->funcname;
+    my $class = $job->funcname;
+    if ($_retry > 0) {
         if ( my $delay = $class->retry_delay($failures) ) {
             $job->run_after( time() + $delay );
         }
         $job->grabbed_until(0);
         $job->driver->update($job);
+    }
+    elsif ($_retry >= 0 && $class->withhold_after_retry) {
+        $job->run_after($class->epoch_mean_pending);
+        $job->driver->update($job);
+        $job->{__is_pending} = 1;
     }
     else {
         $job->set_exit_status( $exit_status || 1 );
