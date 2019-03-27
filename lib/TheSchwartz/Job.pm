@@ -282,6 +282,14 @@ sub _failed {
     ## Mark the failure in the error table.
     $job->add_failure($msg);
 
+    ## Keep error subject for any use later
+    my ($subject) = split "\n\n", $msg, 2;
+    $subject = substr($subject, 0, 128);
+    if ( 128 < length $subject ) {
+        $subject = substr($subject, 0, 128) . '...';
+    }
+    $job->{__last_error_summary} = $subject;
+
     if ($_retry) {
         my $class = $job->funcname;
         if ( my $delay = $class->retry_delay($failures) ) {
