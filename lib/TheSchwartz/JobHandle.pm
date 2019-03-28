@@ -64,7 +64,11 @@ sub failure_log {
 
 sub failures {
     my $handle = shift;
-    return scalar $handle->failure_log;
+    my $datasource = TheSchwartz::Error->datasource;
+    return $handle->driver->select_one(
+        "SELECT count(*) FROM $datasource WHERE jobid=?;",
+        [ $handle->jobid ]
+    );
 }
 
 1;

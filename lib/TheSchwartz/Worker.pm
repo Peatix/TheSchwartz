@@ -16,6 +16,8 @@ sub keep_exit_status_for {0}
 sub max_retries          {0}
 sub retry_delay          {0}
 sub grab_for             { 60 * 60 }    ## 1 hour
+sub withhold_after_retry {0}            ## Boolean flag
+sub epoch_mean_pending   {4294967295}   ## MAX_INT
 
 sub work_safely {
     my ( $class, $job ) = @_;

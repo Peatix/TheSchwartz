@@ -118,7 +118,16 @@ sub add_failure {
     $error->error_time( time() );
     $error->jobid( $job->jobid );
     $error->funcid( $job->funcid );
-    $error->message( $msg || '' );
+    $msg //= '';
+    my $note = join "\n", @{$job->{__note} || []};
+    $msg .= <<"NOTE" if $note;
+
+-------------------------------------------------------------------
+RUNTIME NOTE:
+
+$note
+NOTE
+    $error->message( $msg );
 
     my $driver = $job->driver;
     $driver->insert($error);
@@ -223,7 +232,7 @@ sub permanent_failure {
         $job->debug("can't call 'permanent_failure' on already finished job");
         return 0;
     }
-    $job->_failed( $msg, $ex_status, 0 );
+    $job->_failed( $msg, $ex_status, -1 );
 }
 
 sub declined {
@@ -272,7 +281,7 @@ sub failed {
     $job->debug(
         "job failed.  considering retry.  is max_retries of $max_retries >= failures of $failures?"
     );
-    $job->_failed( $msg, $ex_status, $max_retries >= $failures, $failures );
+    $job->_failed( $msg, $ex_status, $max_retries >= $failures ? 1 : 0, $failures );
 }
 
 sub _failed {
@@ -282,13 +291,26 @@ sub _failed {
     ## Mark the failure in the error table.
     $job->add_failure($msg);
 
-    if ($_retry) {
-        my $class = $job->funcname;
+    ## Keep error subject for any use later
+    my ($subject) = split "\n\n", $msg, 2;
+    $subject = substr($subject, 0, 128);
+    if ( 128 < length $subject ) {
+        $subject = substr($subject, 0, 128) . '...';
+    }
+    $job->{__last_error_summary} = $subject;
+
+    my $class = $job->funcname;
+    if ($_retry > 0) {
         if ( my $delay = $class->retry_delay($failures) ) {
             $job->run_after( time() + $delay );
         }
         $job->grabbed_until(0);
         $job->driver->update($job);
+    }
+    elsif ($_retry >= 0 && $class->withhold_after_retry) {
+        $job->run_after($class->epoch_mean_pending);
+        $job->driver->update($job);
+        $job->{__is_pending} = 1;
     }
     else {
         $job->set_exit_status( $exit_status || 1 );
