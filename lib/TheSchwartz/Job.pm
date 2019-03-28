@@ -306,6 +306,7 @@ sub _failed {
         }
         $job->grabbed_until(0);
         $job->driver->update($job);
+        $job->{__is_retrying} = 1;
     }
     elsif ($_retry >= 0 && $class->withhold_after_retry) {
         $job->run_after($class->epoch_mean_pending);
