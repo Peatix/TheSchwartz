@@ -10,6 +10,7 @@ use Time::HiRes ();
 use TheSchwartz::Error;
 use TheSchwartz::ExitStatus;
 use TheSchwartz::JobHandle;
+use Data::Dumper;
 
 __PACKAGE__->install_properties(
     {   columns => [
@@ -119,6 +120,10 @@ sub add_failure {
     $error->jobid( $job->jobid );
     $error->funcid( $job->funcid );
     $msg = "$msg" || ''; # Help stringify
+
+    local $Data::Dumper::Indent = 1;
+    my $arg_dump = Dumper($job->arg);
+
     my $note = join "\n", @{$job->{__note} || []};
     $msg .= <<"NOTE" if $note;
 
@@ -126,6 +131,11 @@ sub add_failure {
 RUNTIME NOTE:
 
 $note
+
+-------------------------------------------------------------------
+ARG
+
+$arg_dump
 NOTE
     $error->message( $msg );
 
