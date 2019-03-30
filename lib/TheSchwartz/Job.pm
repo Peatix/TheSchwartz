@@ -118,7 +118,7 @@ sub add_failure {
     $error->error_time( time() );
     $error->jobid( $job->jobid );
     $error->funcid( $job->funcid );
-    $msg //= '';
+    $msg = "$msg" || ''; # Help stringify
     my $note = join "\n", @{$job->{__note} || []};
     $msg .= <<"NOTE" if $note;
 
@@ -286,13 +286,13 @@ sub failed {
 
 sub _failed {
     my ( $job, $msg, $exit_status, $_retry, $failures ) = @_;
-    $job->debug( "job failed: " . ( $msg || "<no message>" ) );
+    $job->debug( "job failed: " . ( "$msg" || "<no message>" ) );
 
     ## Mark the failure in the error table.
     $job->add_failure($msg);
 
     ## Keep error subject for any use later
-    my ($subject) = split "\n\n", $msg, 2;
+    my ($subject) = split "\r?\n\r?\n", "$msg", 2;
     $subject = substr($subject, 0, 128);
     if ( 128 < length $subject ) {
         $subject = substr($subject, 0, 128) . '...';
