@@ -127,13 +127,15 @@ sub add_failure {
     my $note = join "\n", @{$job->{__note} || []};
     $msg .= <<"NOTE" if $note;
 
+RETRY: $job->{__failures} / $job->{__max_retries}
+
 -------------------------------------------------------------------
 RUNTIME NOTE:
 
 $note
 
 -------------------------------------------------------------------
-ARG
+ARG:
 
 $arg_dump
 NOTE
@@ -287,6 +289,10 @@ sub failed {
     my $failures = $job->failures
         + 1;    # include this one, since we haven't ->add_failure yet
     my $max_retries = $class->max_retries($job);
+
+    # set these values for help user use afterward.
+    $job->{__failures}    = $failures;
+    $job->{__max_retries} = $max_retries;
 
     $job->debug(
         "job failed.  considering retry.  is max_retries of $max_retries >= failures of $failures?"
