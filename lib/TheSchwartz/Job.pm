@@ -10,6 +10,7 @@ use Time::HiRes ();
 use TheSchwartz::Error;
 use TheSchwartz::ExitStatus;
 use TheSchwartz::JobHandle;
+use Data::Dumper;
 
 __PACKAGE__->install_properties(
     {   columns => [
@@ -118,14 +119,25 @@ sub add_failure {
     $error->error_time( time() );
     $error->jobid( $job->jobid );
     $error->funcid( $job->funcid );
-    $msg //= '';
+    $msg = "$msg" || ''; # Help stringify
+
+    local $Data::Dumper::Indent = 1;
+    my $arg_dump = Dumper($job->arg);
+
     my $note = join "\n", @{$job->{__note} || []};
     $msg .= <<"NOTE" if $note;
+
+RETRY: $job->{__failures} / $job->{__max_retries}
 
 -------------------------------------------------------------------
 RUNTIME NOTE:
 
 $note
+
+-------------------------------------------------------------------
+ARG:
+
+$arg_dump
 NOTE
     $error->message( $msg );
 
@@ -278,6 +290,10 @@ sub failed {
         + 1;    # include this one, since we haven't ->add_failure yet
     my $max_retries = $class->max_retries($job);
 
+    # set these values for help user use afterward.
+    $job->{__failures}    = $failures;
+    $job->{__max_retries} = $max_retries;
+
     $job->debug(
         "job failed.  considering retry.  is max_retries of $max_retries >= failures of $failures?"
     );
@@ -286,13 +302,13 @@ sub failed {
 
 sub _failed {
     my ( $job, $msg, $exit_status, $_retry, $failures ) = @_;
-    $job->debug( "job failed: " . ( $msg || "<no message>" ) );
+    $job->debug( "job failed: " . ( "$msg" || "<no message>" ) );
 
     ## Mark the failure in the error table.
     $job->add_failure($msg);
 
     ## Keep error subject for any use later
-    my ($subject) = split "\n\n", $msg, 2;
+    my ($subject) = split "\r?\n\r?\n", "$msg", 2;
     $subject = substr($subject, 0, 128);
     if ( 128 < length $subject ) {
         $subject = substr($subject, 0, 128) . '...';
