@@ -125,9 +125,10 @@ sub add_failure {
     my $arg_dump = Dumper($job->arg);
 
     my $note = join "\n", @{$job->{__note} || []};
+    my $retry = $job->{__failures} ? "$job->{__failures} / $job->{__max_retries}" : "Permanent Failure";
     $msg .= <<"NOTE" if $note;
 
-RETRY: $job->{__failures} / $job->{__max_retries}
+RETRY: $retry
 
 -------------------------------------------------------------------
 RUNTIME NOTE:
